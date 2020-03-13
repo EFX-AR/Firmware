@@ -672,6 +672,7 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 
 	double last_lat = (double)NAN;
 	double last_lon = (double)NAN;
+	float last_alt = (double)NAN;
 
 	/* Go through all waypoints */
 	for (size_t i = 0; i < mission.count; i++) {
@@ -693,15 +694,27 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 		if (PX4_ISFINITE(last_lat) && PX4_ISFINITE(last_lon)) {
 
 			/* check distance from current position to item */
-			const float dist_between_waypoints = get_distance_to_next_waypoint(
+			const float dist_between_waypoints = fabsf(last_alt - mission_item.altitude) + get_distance_to_next_waypoint(
 					mission_item.lat, mission_item.lon,
 					last_lat, last_lon);
 
+
 			if (dist_between_waypoints > max_distance) {
-				/* item is too far from home */
+				/* distance between waypoints is too high */
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 						     "Distance between waypoints too far: %d meters, %d max.",
 						     (int)dist_between_waypoints, (int)max_distance);
+
+				_navigator->get_mission_result()->warning = true;
+				return false;
+
+			} else if (dist_between_waypoints < 0.05f) {
+				/* waypoints are at the exact same position,
+				 * which indicates an invalid mission and makes calculating
+				 * the direction from one waypoint to another impossible. */
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+						     "Distance between waypoints too close: %d meters",
+						     (int)dist_between_waypoints);
 
 				_navigator->get_mission_result()->warning = true;
 				return false;
