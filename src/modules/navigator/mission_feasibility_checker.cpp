@@ -672,7 +672,7 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 
 	double last_lat = (double)NAN;
 	double last_lon = (double)NAN;
-	float last_alt = (double)NAN;
+	float last_alt = NAN;
 
 	/* Go through all waypoints */
 	for (size_t i = 0; i < mission.count; i++) {
